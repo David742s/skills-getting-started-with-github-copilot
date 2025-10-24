@@ -25,9 +25,39 @@ document.addEventListener("DOMContentLoaded", () => {
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <p><strong>Participants:</strong></p>
+          <ul class="participants-list" style="list-style-type: none; padding-left: 0;">
+            ${details.participants.map(participant => `
+              <li style="display: flex; align-items: center; margin-bottom: 4px;">
+                <span style="flex: 1;">${participant}</span>
+                <button class="delete-participant" data-activity="${name}" data-email="${participant}" title="Eliminar participante" style="background: none; border: none; color: #c62828; cursor: pointer; font-size: 18px; margin-left: 8px;">✖️</button>
+              </li>
+            `).join('')}
+          </ul>
         `;
 
         activitiesList.appendChild(activityCard);
+
+          // Añadir manejador de eliminación para cada botón
+          activityCard.querySelectorAll('.delete-participant').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+              const email = btn.getAttribute('data-email');
+              const activity = btn.getAttribute('data-activity');
+              if (confirm(`¿Seguro que deseas eliminar a ${email} de ${activity}?`)) {
+                try {
+                  const response = await fetch(`/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`, { method: 'POST' });
+                  const result = await response.json();
+                  if (response.ok) {
+                    fetchActivities();
+                  } else {
+                    alert(result.detail || 'No se pudo eliminar el participante.');
+                  }
+                } catch (err) {
+                  alert('Error al eliminar participante.');
+                }
+              }
+            });
+          });
 
         // Add option to select dropdown
         const option = document.createElement("option");
@@ -62,6 +92,8 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        // Refrescar la lista de actividades para mostrar el nuevo participante
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
